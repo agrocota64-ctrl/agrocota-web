@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agrocota — Proposta do Fornecedor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --navy: #0d2137;
+  --navy-mid: #163350;
+  --blue-700: #1565c0;
+  --blue-600: #1976d2;
+  --blue-400: #42a5f5;
+  --blue-100: #e3f2fd;
+  --blue-50: #f0f7ff;
+  --green-700: #2e7d32;
+  --green-600: #388e3c;
+  --green-100: #e8f5e9;
+  --green-50: #f4faf4;
+  --red-600: #c62828;
+  --red-100: #ffebee;
+  --amber-700: #d84315;
+  --amber-100: #fff3e0;
+  --purple-600: #7b1fa2;
+  --purple-100: #f3e5f5;
+  --gray-900: #111827;
+  --gray-700: #374151;
+  --gray-600: #4b5563;
+  --gray-500: #6b7280;
+  --gray-400: #9ca3af;
+  --gray-300: #d1d5db;
+  --gray-200: #e5e7eb;
+  --gray-100: #f3f4f6;
+  --gray-50: #f9fafb;
+  --bg: #edf2f7;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+  --shadow: 0 4px 16px rgba(0,0,0,.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.12);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--gray-900);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── LOADING / ERROR ── */
+#state-loading, #state-error {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; gap: 16px; padding: 32px; text-align: center;
+}
+#state-error { display: none; }
+#state-main  { display: none; }
+.loader {
+  width: 36px; height: 36px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--blue-600);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#state-error h2 { font-family: 'Syne', sans-serif; font-size: 20px; color: var(--gray-900); }
+#state-error p  { color: var(--gray-600); max-width: 400px; }
+
+/* ── HEADER ── */
+.header {
+  background: var(--navy);
+  height: 60px;
+  padding: 0 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,.3);
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-mark {
+  width: 34px; height: 34px; background: var(--blue-600);
+  border-radius: 7px; display: grid; place-items: center;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px;
+  color: #fff; letter-spacing: -.5px;
+}
+.brand-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; color: #fff; }
+.brand-tag  { font-size: 11px; color: rgba(255,255,255,.45); }
+.header-badge {
+  padding: 6px 16px; border-radius: 20px;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.9); font-size: 12px; font-weight: 600;
+}
+
+/* ── MAIN ── */
+.main { max-width: 1440px; margin: 0 auto; padding: 24px 20px 60px; }
+
+/* ── INSTRUCAO ── */
+.instrucao {
+  background: var(--blue-50); border: 1.5px solid #90caf9;
+  border-radius: var(--radius); padding: 16px 20px;
+  font-size: 13px; color: var(--blue-700); margin-bottom: 20px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+
+/* ── CARD ── */
+.card {
+  background: #fff; border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm); border: 1px solid var(--gray-200);
+  margin-bottom: 20px; overflow: hidden;
+}
+.card-head-blue {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+  padding: 22px 30px;
+}
+.card-head-blue h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: #fff; }
+.card-head-blue p  { font-size: 12.5px; color: rgba(255,255,255,.5); margin-top: 4px; }
+.card-body { padding: 22px; }
+
+/* ── FORNECEDOR FORM ── */
+.forn-form {
+  background: var(--gray-50); border: 1px solid var(--gray-200);
+  border-radius: var(--radius); padding: 18px 22px; margin-bottom: 22px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px;
+}
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .6px; }
+.req { color: var(--red-600); }
+.form-input {
+  height: 38px; padding: 0 11px;
+  border: 1.5px solid var(--gray-200); border-radius: var(--radius);
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--gray-900); background: #fff;
+  transition: border-color .15s, box-shadow .15s;
+}
+.form-input:focus {
+  outline: none; border-color: var(--blue-600);
+  box-shadow: 0 0 0 3px rgba(25,118,210,.1);
+}
+.form-input::placeholder { color: var(--gray-400); font-weight: 400; }
+
+/* ── VALIDADE DA PROPOSTA ── */
+.validade-row {
+  background: var(--amber-100); border: 1px solid #ffcc80;
+  border-radius: var(--radius); padding: 12px 18px; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.validade-row label { font-size: 12px; font-weight: 600; color: var(--amber-700); white-space: nowrap; }
+.validade-row input[type="date"] {
+  height: 34px; padding: 0 10px;
+  border: 1.5px solid #ffcc80; border-radius: var(--radius);
+  font-family: 'Inter', sans-serif; font-size: 13px; color: var(--gray-900); background: #fff;
+}
+.validade-row input[type="date"]:focus { outline: none; border-color: var(--amber-700); }
+
+/* ── PROGRESS ── */
+.progress-wrap { margin-bottom: 18px; }
+.progress-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.progress-label { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+.progress-pct { font-size: 12px; font-weight: 700; color: var(--blue-600); }
+.progress-bar-bg { height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden; }
+.progress-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--blue-600), var(--blue-400));
+  border-radius: 3px; transition: width .3s ease; width: 0%;
+}
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--gray-200); }
+table { width: 100%; border-collapse: collapse; min-width: 1020px; }
+thead { background: var(--gray-50); }
+th {
+  padding: 10px 13px; text-align: left;
+  font-size: 10.5px; font-weight: 700; color: var(--gray-500);
+  text-transform: uppercase; letter-spacing: .5px;
+  border-bottom: 2px solid var(--gray-200); white-space: nowrap;
+}
+th.price-col { background: var(--green-50); color: var(--green-700); border-bottom-color: #a5d6a7; min-width: 170px; }
+th.info-col  { background: var(--blue-50);  color: var(--blue-700);  border-bottom-color: #90caf9; min-width: 160px; }
+
+td { padding: 13px 13px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--gray-50); }
+
+.group-row td {
+  background: linear-gradient(90deg, #e3f0e5, #f4faf4);
+  font-size: 10.5px; font-weight: 700; color: var(--green-700);
+  text-transform: uppercase; letter-spacing: .5px; padding: 7px 13px;
+  border-bottom: 1px solid #c8e6c9;
+}
+.subgroup-row td {
+  background: #fafbff; font-size: 10.5px; font-weight: 600;
+  color: var(--blue-700); padding: 5px 13px 5px 22px;
+  border-bottom: 1px solid #e8eef8; letter-spacing: .3px;
+}
+
+.prod-name { font-weight: 600; font-size: 13px; color: var(--gray-900); }
+.prod-cat-badge  { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 600; background: var(--gray-100); color: var(--gray-600); }
+.prod-subcat-badge { display: inline-block; margin-top: 3px; margin-left: 3px; padding: 2px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 600; background: var(--amber-100); color: var(--amber-700); }
+.prod-extras { font-size: 11px; color: var(--gray-400); margin-top: 3px; }
+.dose-cell { display: flex; align-items: center; gap: 6px; }
+.dose-num  { font-weight: 700; font-size: 13px; color: var(--gray-900); }
+.dose-unit { font-size: 11px; color: var(--gray-500); }
+.locked-badge {
+  display: inline-block; padding: 2px 7px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  background: var(--amber-100); color: var(--amber-700); border: 1px solid #ffcc80;
+}
+
+.info-cell { background: var(--blue-50); }
+.info-textarea {
+  width: 100%; min-height: 56px; max-height: 120px;
+  padding: 8px 10px; font-size: 12.5px; font-family: 'Inter', sans-serif;
+  color: var(--gray-900); border: 1.5px solid #90caf9;
+  border-radius: var(--radius); background: #fff;
+  resize: vertical; line-height: 1.4;
+  transition: border-color .15s;
+}
+.info-textarea:focus { outline: none; border-color: var(--blue-600); }
+.info-textarea::placeholder { color: var(--gray-400); font-size: 12px; }
+
+.price-cell { background: var(--green-50); }
+.price-input-wrap { display: flex; align-items: center; gap: 7px; }
+.price-prefix { font-size: 13px; font-weight: 700; color: var(--gray-500); flex-shrink: 0; }
+.input-price {
+  height: 40px; width: 130px; padding: 0 10px;
+  border: 2px solid #a5d6a7; border-radius: var(--radius);
+  font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px;
+  color: var(--green-700); background: #fff; text-align: right;
+  transition: border-color .15s;
+}
+.input-price:focus { outline: none; border-color: var(--green-600); box-shadow: 0 0 0 3px rgba(56,142,60,.12); }
+.input-price::placeholder { color: #b0d0b2; font-weight: 400; }
+.input-price:disabled { opacity: .55; cursor: not-allowed; }
+.btn-clear-price {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+  border: none; background: var(--gray-200); color: var(--gray-500);
+  font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  transition: background .15s, color .15s;
+}
+.btn-clear-price:hover { background: #ffcdd2; color: #c62828; }
+
+/* ── TOTAL ── */
+.total-bar {
+  background: var(--green-50); border: 2px solid #a5d6a7;
+  border-radius: var(--radius); padding: 16px 22px;
+  display: flex; align-items: center; justify-content: space-between; margin-top: 18px;
+}
+.total-label { font-size: 13px; font-weight: 700; color: var(--green-700); }
+.total-sub   { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+.total-value { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 26px; color: var(--green-700); }
+
+/* ── EMPTY ── */
+.empty-state { padding: 60px 20px; text-align: center; color: var(--gray-400); }
+.empty-state h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; color: var(--gray-600); margin-bottom: 6px; }
+
+/* ── BOTOES ── */
+.btn {
+  height: 42px; padding: 0 24px; border-radius: var(--radius);
+  font-family: 'Inter', sans-serif; font-weight: 700; font-size: 13px;
+  cursor: pointer; border: none; transition: .15s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary-green  { background: var(--green-600); color: #fff; }
+.btn-primary-green:hover { background: var(--green-700); }
+.btn-secondary { background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-200); }
+.btn-secondary:hover { background: var(--gray-200); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-row { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+
+/* ── SENDING ── */
+.sending-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(13,33,55,.65); backdrop-filter: blur(3px);
+  align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+}
+.sending-overlay.active { display: flex; }
+.sending-overlay p { color: #fff; font-weight: 600; font-size: 15px; }
+
+/* ── SUCCESS BANNER ── */
+.success-banner {
+  display: none; background: var(--green-100);
+  border: 2px solid #a5d6a7; border-radius: var(--radius-lg);
+  padding: 32px; text-align: center; margin-top: 20px;
+}
+.success-banner h3 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; color: var(--green-700); margin-bottom: 8px; }
+.success-banner p { color: var(--gray-600); font-size: 14px; }
+.success-banner .success-check { font-size: 48px; margin-bottom: 12px; }
+
+/* ── NOTIF ── */
+.notif {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  padding: 13px 20px; border-radius: var(--radius); color: #fff;
+  font-weight: 600; font-size: 13px; box-shadow: var(--shadow-lg);
+  animation: fadeUp .25s ease; pointer-events: none; max-width: 340px;
+}
+.notif.success { background: var(--green-600); }
+.notif.error   { background: var(--red-600); }
+.notif.info    { background: var(--blue-700); }
+@keyframes fadeUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── ALREADY SENT BANNER ── */
+.already-sent {
+  background: var(--blue-50); border: 2px solid #90caf9;
+  border-radius: var(--radius); padding: 18px 22px; margin-bottom: 18px;
+  font-size: 13px; color: var(--blue-700); font-weight: 600;
+  display: none; align-items: center; gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .header { padding: 0 16px; }
+  .main { padding: 14px 12px 40px; }
+  .forn-form { grid-template-columns: 1fr 1fr; }
+  .total-bar { flex-direction: column; gap: 12px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .forn-form { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ESTADOS DE LOADING / ERRO -->
+<div id="state-loading">
+  <div class="loader"></div>
+  <p style="color:#6b7280;font-size:14px">Carregando cotação...</p>
+</div>
+
+<div id="state-error">
+  <div style="font-size:48px">⚠️</div>
+  <h2 id="err-title">Link inválido</h2>
+  <p id="err-msg">Este link não é válido ou expirou. Solicite um novo link ao consultor.</p>
+</div>
+
+<!-- TELA PRINCIPAL -->
+<div id="state-main">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="brand">
+    <div class="brand-mark">AC</div>
+    <div>
+      <div class="brand-name">AgroCota</div>
+      <div class="brand-tag">Portal do Fornecedor</div>
+    </div>
+  </div>
+  <div class="header-badge" id="header-badge">Proposta de Fornecedor</div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- INSTRUÇÃO -->
+  <div class="instrucao">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <div style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-weight:700;color:#1565c0;white-space:nowrap">Como preencher:</span>
+      <span style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+        <span style="background:#1976d2;color:#fff;font-weight:800;font-size:10px;width:17px;height:17px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center">1</span>
+        Preencha seus dados de identificação
+      </span>
+      <span style="color:#9ca3af">→</span>
+      <span style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+        <span style="background:#2e7d32;color:#fff;font-weight:800;font-size:10px;width:17px;height:17px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center">2</span>
+        Digite o preço na coluna <span style="background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:3px;font-weight:700;font-size:11px">VERDE</span>
+      </span>
+      <span style="color:#9ca3af">→</span>
+      <span style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+        <span style="background:#2e7d32;color:#fff;font-weight:800;font-size:10px;width:17px;height:17px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center">3</span>
+        Clique em <strong>Enviar Proposta</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- BANNER "JÁ ENVIADO" -->
+  <div class="already-sent" id="already-sent-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+    <span>Sua empresa <strong id="already-empresa"></strong> já enviou uma proposta para esta cotação. Enviar novamente substituirá a proposta anterior.</span>
+  </div>
+
+  <!-- CARD PRINCIPAL -->
+  <div class="card">
+    <div class="card-head-blue">
+      <h2 id="cotacao-titulo">Cotação de Insumos Agrícolas</h2>
+      <p id="cotacao-info">Carregando...</p>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Identificação do Fornecedor -->
+      <div class="forn-form">
+        <div class="form-group">
+          <label class="form-label">Empresa Fornecedora <span class="req">*</span></label>
+          <input type="text" class="form-input" id="forn-empresa" placeholder="Razão social ou nome comercial">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsável / Contato <span class="req">*</span></label>
+          <input type="text" class="form-input" id="forn-contato" placeholder="Nome do representante">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telefone / WhatsApp</label>
+          <input type="text" class="form-input" id="forn-tel" placeholder="(xx) 9xxxx-xxxx">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-input" id="forn-email" placeholder="contato@empresa.com.br">
+        </div>
+      </div>
+
+      <!-- Validade da proposta -->
+      <div class="validade-row">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d84315" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <label for="forn-validade">Validade desta proposta:</label>
+        <input type="date" id="forn-validade">
+        <span style="font-size:12px;color:var(--amber-700)">(opcional)</span>
+      </div>
+
+      <!-- Progresso -->
+      <div class="progress-wrap" id="progress-wrap" style="display:none">
+        <div class="progress-meta">
+          <span class="progress-label">Progresso de preenchimento</span>
+          <span class="progress-pct" id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+      </div>
+
+      <!-- Observações gerais -->
+      <div style="margin-bottom:18px">
+        <label style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:6px">Observações Gerais da Proposta</label>
+        <textarea id="forn-obs" style="width:100%;min-height:64px;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:13px;color:var(--gray-900);resize:vertical;line-height:1.5" placeholder="Condições de pagamento, prazo de entrega geral, descontos por volume, etc."></textarea>
+      </div>
+
+      <!-- Tabela de Produtos -->
+      <div class="table-wrap">
+        <table id="forn-table" style="display:none">
+          <thead>
+            <tr>
+              <th style="min-width:200px">Produto</th>
+              <th style="min-width:150px">Princípio Ativo / i.a.</th>
+              <th style="min-width:120px">Fonte Nutricional</th>
+              <th style="min-width:160px">Alvo / Controle</th>
+              <th style="min-width:90px">Estádio Aplic.</th>
+              <th style="min-width:130px">Dose Fixa</th>
+              <th style="min-width:60px;text-align:center">Aplic.</th>
+              <th class="info-col" style="min-width:180px">Mais Informações <small style="font-weight:400;text-transform:none;letter-spacing:0">(sua proposta)</small></th>
+              <th class="price-col">Valor por ha (R$/ha)</th>
+            </tr>
+          </thead>
+          <tbody id="forn-body"></tbody>
+        </table>
+        <div class="empty-state" id="forn-empty">
+          <h3>Nenhum produto encontrado</h3>
+          <p>Esta cotação não possui itens a serem cotados.</p>
+        </div>
+      </div>
+
+      <!-- Total -->
+      <div class="total-bar" id="total-bar" style="display:none">
+        <div>
+          <div class="total-label">Total da Proposta (soma dos valores preenchidos)</div>
+          <div class="total-sub">Atualizado automaticamente conforme você preenche</div>
+        </div>
+        <div class="total-value" id="total-val">R$ 0,00</div>
+      </div>
+
+      <!-- Botões -->
+      <div class="btn-row" id="btn-row" style="display:none">
+        <button class="btn btn-primary-green" id="btn-enviar" onclick="submitCotacao()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Enviar Proposta ao Consultor
+        </button>
+        <button class="btn btn-secondary" onclick="window.print()">Imprimir</button>
+      </div>
+
+      <!-- Banner de Sucesso -->
+      <div class="success-banner" id="success-banner">
+        <div class="success-check">✅</div>
+        <h3>Proposta Enviada com Sucesso!</h3>
+        <p id="success-msg">Sua proposta foi registrada e o consultor foi notificado.</p>
+        <p style="margin-top:12px;font-size:12px;color:var(--gray-500)">Você pode fechar esta janela.</p>
+      </div>
+
+    </div>
+  </div>
+</div><!-- /main -->
+
+</div><!-- /state-main -->
+
+<!-- OVERLAY ENVIANDO -->
+<div class="sending-overlay" id="sending-overlay">
+  <div class="loader" style="border-color:rgba(255,255,255,.3);border-top-color:#fff;width:42px;height:42px;border-width:4px"></div>
+  <p>Enviando sua proposta...</p>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   CONFIG SUPABASE
+══════════════════════════════════════════════ */
+const SUPABASE_URL  = 'https://fafjknchnibdflpqyssf.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_3HDU_nViFfOubXqNplV5ow_8FV0Ix0r';
+
+/* ══════════════════════════════════════════════
+   ESTADO
+══════════════════════════════════════════════ */
+let cotacao      = null;   // objeto da cotação
+let cotacaoId    = null;   // UUID da cotação
+let token        = null;   // approval_token
+let products     = [];
+let localPrices  = {};
+let localInfos   = {};
+
+/* ══════════════════════════════════════════════
+   HELPERS HTTP
+══════════════════════════════════════════════ */
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(SUPABASE_URL + path, {
+    ...opts,
+    headers: {
+      'apikey':        SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type':  'application/json',
+      'Prefer':        'return=representation',
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.statusText);
+    throw new Error(err);
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return res.json();
+  return null;
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+(async function init() {
+  // Extrai token da URL: ?token=XXXXXXXX
+  const params = new URLSearchParams(location.search);
+  token = params.get('token') || params.get('t');
+
+  if (!token) {
+    showError('Link inválido', 'Nenhum token foi encontrado na URL. Solicite um novo link ao consultor.');
+    return;
+  }
+
+  try {
+    await loadCotacao();
+  } catch(e) {
+    showError('Erro ao carregar', 'Não foi possível carregar a cotação: ' + (e.message || 'erro desconhecido'));
+  }
+})();
+
+/* ══════════════════════════════════════════════
+   CARREGAR COTAÇÃO (pelo approval_token)
+══════════════════════════════════════════════ */
+async function loadCotacao() {
+  // 1. Busca cotação pelo approval_token
+  const rows = await sbFetch(
+    '/rest/v1/cotacoes?approval_token=eq.' + encodeURIComponent(token) +
+    '&select=id,titulo,consultor_id,fazenda_id,area_ha,data_validade,observacoes,excel_itens_json,status&limit=1'
+  );
+
+  if (!rows || rows.length === 0) {
+    showError('Cotação não encontrada', 'Este link de cotação não existe ou foi revogado. Solicite um novo ao consultor.');
+    return;
+  }
+
+  cotacao   = rows[0];
+  cotacaoId = cotacao.id;
+
+  // 2. Verifica se cotação está ativa (não cancelada)
+  if (cotacao.status === 'cancelada') {
+    showError('Cotação cancelada', 'Esta cotação foi cancelada pelo consultor.');
+    return;
+  }
+
+  // 3. Carrega itens da cotação
+  let itens = [];
+  try {
+    const itensRows = await sbFetch(
+      '/rest/v1/itens_cotacao?cotacao_id=eq.' + cotacaoId +
+      '&select=id,produto_nome,fornecedor,unidade,quantidade,preco_referencia,categoria,estagio,n_aplicacoes,dose_ha,volume_total,obs&order=categoria.asc,produto_nome.asc'
+    );
+    itens = itensRows || [];
+  } catch(e) {
+    // fallback: tenta carregar do excel_itens_json
+    if (cotacao.excel_itens_json) {
+      try { itens = JSON.parse(cotacao.excel_itens_json) || []; } catch(_) {}
+    }
+  }
+
+  // 4. Monta products a partir dos itens
+  products = itens.map(it => ({
+    id:       it.id,
+    nome:     it.produto_nome || '—',
+    cat:      it.categoria || 'Geral',
+    subcat:   '',
+    ia:       it.obs || '—',
+    fonte:    it.fornecedor || '—',
+    alvo:     '—',
+    estadio:  it.estagio || '—',
+    dose:     it.dose_ha != null ? String(it.dose_ha) : (it.quantidade != null ? String(it.quantidade) : '—'),
+    unid:     it.unidade || 'L/ha',
+    aplic:    it.n_aplicacoes || '—',
+    tecnologia: null,
+    extras:   [],
+    valor_ha: 0
+  }));
+
+  // 5. Verifica se já existe proposta desta sessão (por empresa no localStorage)
+  try {
+    const savedEmpresa = localStorage.getItem('ac_forn_empresa_' + cotacaoId);
+    if (savedEmpresa) {
+      document.getElementById('already-sent-banner').style.display = 'flex';
+      document.getElementById('already-empresa').textContent = savedEmpresa;
+    }
+  } catch(e) {}
+
+  // 6. Busca nome da fazenda
+  let fazendaNome = '—';
+  if (cotacao.fazenda_id) {
+    try {
+      const fRows = await sbFetch('/rest/v1/fazendas?id=eq.' + cotacao.fazenda_id + '&select=nome&limit=1');
+      if (fRows && fRows[0]) fazendaNome = fRows[0].nome;
+    } catch(_) {}
+  }
+
+  // 7. Preenche UI
+  document.getElementById('cotacao-titulo').textContent = cotacao.titulo || 'Cotação de Insumos';
+  document.getElementById('cotacao-info').textContent =
+    'Fazenda: ' + fazendaNome + ' · Validade: ' + (cotacao.data_validade ? new Date(cotacao.data_validade).toLocaleDateString('pt-BR') : 'Não definida');
+  document.getElementById('header-badge').textContent = cotacao.titulo || 'Proposta';
+  document.title = (cotacao.titulo || 'Cotação') + ' — AgroCota Fornecedor';
+
+  // Data padrão de validade da proposta (7 dias)
+  const dv = new Date(); dv.setDate(dv.getDate() + 7);
+  document.getElementById('forn-validade').value = dv.toISOString().split('T')[0];
+
+  // 8. Renderiza tabela
+  renderTable();
+
+  // 9. Mostra tela principal
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-main').style.display   = 'block';
+}
+
+/* ══════════════════════════════════════════════
+   RENDER TABELA
+══════════════════════════════════════════════ */
+function renderTable() {
+  if (!products.length) {
+    document.getElementById('forn-empty').style.display = 'block';
+    document.getElementById('forn-table').style.display = 'none';
+    document.getElementById('total-bar').style.display  = 'none';
+    document.getElementById('btn-row').style.display    = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('forn-table').style.display    = 'table';
+  document.getElementById('forn-empty').style.display    = 'none';
+  document.getElementById('total-bar').style.display     = 'flex';
+  document.getElementById('btn-row').style.display       = 'flex';
+  document.getElementById('progress-wrap').style.display = 'block';
+
+  const grupos = {};
+  products.forEach(p => {
+    const cat = p.cat || 'Geral';
+    const sub = p.subcat || '';
+    if (!grupos[cat]) grupos[cat] = {};
+    if (!grupos[cat][sub]) grupos[cat][sub] = [];
+    grupos[cat][sub].push(p);
+  });
+
+  let rows = '';
+  for (const cat in grupos) {
+    const subcats   = grupos[cat];
+    const catCount  = Object.values(subcats).flat().length;
+    rows += `<tr class="group-row"><td colspan="9">📁 ${cat} — ${catCount} produto${catCount>1?'s':''}</td></tr>`;
+
+    for (const sub in subcats) {
+      const list = subcats[sub];
+      if (sub) rows += `<tr class="subgroup-row"><td colspan="9">▸ ${sub}</td></tr>`;
+
+      list.forEach(p => {
+        const savedVal  = localPrices[p.id] !== undefined ? localPrices[p.id] : '';
+        const savedInfo = localInfos[p.id]  || '';
+        const tecnologiaHtml = p.tecnologia
+          ? `<span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;background:var(--purple-100);color:var(--purple-600);margin-top:3px">${p.tecnologia}</span>` : '';
+
+        rows += `
+          <tr id="row-${p.id}">
+            <td>
+              <div class="prod-name">${escHtml(p.nome)}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">
+                <span class="prod-cat-badge">${escHtml(cat)}</span>
+                ${sub ? `<span class="prod-subcat-badge">${escHtml(sub)}</span>` : ''}
+                ${tecnologiaHtml}
+              </div>
+            </td>
+            <td style="font-size:12px;max-width:150px">${escHtml(p.ia || '—')}</td>
+            <td style="font-size:12px;max-width:130px">${escHtml(p.fonte || '—')}</td>
+            <td style="font-size:12px;color:var(--gray-600);max-width:160px">${escHtml(p.alvo || '—')}</td>
+            <td style="font-size:12px">${escHtml(p.estadio || '—')}</td>
+            <td>
+              <div class="dose-cell">
+                <span class="dose-num">${escHtml(String(p.dose))}</span>
+                <span class="dose-unit">${escHtml(p.unid)}</span>
+                <span class="locked-badge">TRAVADO</span>
+              </div>
+            </td>
+            <td style="text-align:center;font-weight:600">${escHtml(String(p.aplic || '—'))}</td>
+            <td class="info-cell">
+              <textarea
+                class="info-textarea"
+                id="info-${p.id}"
+                placeholder="Prazo de entrega, condições, marca..."
+                oninput="onInfoInput('${p.id}', this.value)"
+              >${escHtml(savedInfo)}</textarea>
+            </td>
+            <td class="price-cell">
+              <div class="price-input-wrap">
+                <span class="price-prefix">R$</span>
+                <input
+                  type="number"
+                  class="input-price"
+                  id="price-${p.id}"
+                  placeholder="0,00"
+                  value="${savedVal !== '' ? savedVal : ''}"
+                  min="0" step="0.01"
+                  oninput="onPriceInput('${p.id}', this.value)"
+                >
+                <button class="btn-clear-price" onclick="clearPrice('${p.id}')" title="Limpar">×</button>
+              </div>
+            </td>
+          </tr>`;
+      });
+    }
+  }
+
+  document.getElementById('forn-body').innerHTML = rows;
+  calcTotal();
+  updateProgress();
+}
+
+/* ══════════════════════════════════════════════
+   PREÇO E INFO
+══════════════════════════════════════════════ */
+function onPriceInput(id, val) {
+  localPrices[id] = parseFloat(val) || 0;
+  calcTotal();
+  updateProgress();
+}
+
+function clearPrice(id) {
+  localPrices[id] = 0;
+  const inp = document.getElementById('price-' + id);
+  if (inp) inp.value = '';
+  calcTotal();
+  updateProgress();
+}
+
+function onInfoInput(id, val) {
+  localInfos[id] = val;
+}
+
+function calcTotal() {
+  const total = Object.values(localPrices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  document.getElementById('total-val').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+}
+
+function updateProgress() {
+  const filled = products.filter(p => (localPrices[p.id] || 0) > 0).length;
+  const pct = products.length ? Math.round((filled / products.length) * 100) : 0;
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+/* ══════════════════════════════════════════════
+   ENVIAR COTAÇÃO → SUPABASE
+══════════════════════════════════════════════ */
+async function submitCotacao() {
+  const empresa = document.getElementById('forn-empresa').value.trim();
+  const contato = document.getElementById('forn-contato').value.trim();
+
+  if (!empresa || !contato) {
+    notify('Preencha a empresa e o responsável antes de enviar', 'error');
+    return;
+  }
+
+  const filled = products.filter(p => (localPrices[p.id] || 0) > 0).length;
+  if (filled === 0) {
+    notify('Preencha ao menos um valor por ha antes de enviar', 'error');
+    return;
+  }
+
+  const tel      = document.getElementById('forn-tel').value.trim();
+  const email    = document.getElementById('forn-email').value.trim();
+  const validade = document.getElementById('forn-validade').value || null;
+  const obs      = document.getElementById('forn-obs').value.trim();
+
+  // Monta itens_json
+  const itensJson = products.map(p => ({
+    id:        p.id,
+    produto:   p.nome,
+    cat:       p.cat,
+    dose:      `${p.dose} ${p.unid}`,
+    valor_ha:  parseFloat(localPrices[p.id] || 0),
+    info:      localInfos[p.id] || ''
+  }));
+
+  const totalProposta = itensJson.reduce((s, it) => s + it.valor_ha, 0);
+
+  // Exibe overlay
+  document.getElementById('sending-overlay').classList.add('active');
+  document.getElementById('btn-enviar').disabled = true;
+
+  try {
+    // 1. Insere proposta em propostas_fornecedor
+    const proposta = {
+      cotacao_id:      cotacaoId,
+      token_cotacao:   token,
+      empresa_nome:    empresa,
+      responsavel_nome: contato,
+      telefone:        tel || null,
+      email:           email || null,
+      validade_proposta: validade || null,
+      observacoes:     obs || null,
+      itens_json:      itensJson,
+      total_proposta:  totalProposta,
+      user_agent:      navigator.userAgent.substring(0, 200)
+    };
+
+    await sbFetch('/rest/v1/propostas_fornecedor', {
+      method: 'POST',
+      body: JSON.stringify(proposta)
+    });
+
+    // 2. Cria notificação para o consultor
+    // tipo = 'proposta_fornecedor' — alinhado com NotificacaoRow do NotificacoesService.ts
+    // O Realtime listener (iniciarListenerPropostasFornecedor) escuta INSERT nessa tabela
+    // e dispara enviarNotificacaoLocal automaticamente no app.
+    if (cotacao && cotacao.consultor_id) {
+      const notif = {
+        consultor_id:       cotacao.consultor_id,
+        tipo:               'proposta_fornecedor',
+        titulo:             '📥 Nova proposta de ' + empresa,
+        mensagem:           empresa + ' enviou uma proposta para "' + (cotacao.titulo || 'sem título') + '". ' + filled + ' produto' + (filled !== 1 ? 's' : '') + ' cotado' + (filled !== 1 ? 's' : '') + ' · Total: R$ ' + totalProposta.toFixed(2).replace('.', ','),
+        empresa_fornecedor: empresa,
+        cotacao_id:         cotacaoId,
+        token_cotacao:      token,
+        lida:               false
+      };
+
+      await sbFetch('/rest/v1/notificacoes', {
+        method: 'POST',
+        body: JSON.stringify(notif)
+      }).catch((e) => {
+        console.warn('[Notif] Falha ao criar notificação (não bloqueia envio):', e);
+      });
+    }
+
+    // 3. Salva no localStorage para identificar envio anterior
+    try { localStorage.setItem('ac_forn_empresa_' + cotacaoId, empresa); } catch(e) {}
+
+    // 4. Sucesso: desabilita tudo
+    document.querySelectorAll('.input-price').forEach(inp => inp.disabled = true);
+    document.querySelectorAll('.btn-clear-price').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('.info-textarea').forEach(ta => { ta.disabled = true; ta.style.opacity = '.6'; });
+    document.querySelectorAll('.form-input').forEach(inp => inp.disabled = true);
+    document.getElementById('forn-validade').disabled = true;
+    document.getElementById('forn-obs').disabled = true;
+    document.getElementById('btn-row').style.display = 'none';
+
+    const banner = document.getElementById('success-banner');
+    document.getElementById('success-msg').textContent =
+      empresa + ' — ' + filled + ' de ' + products.length + ' produtos cotados · Total: R$ ' + totalProposta.toFixed(2).replace('.', ',');
+    banner.style.display = 'block';
+    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    notify('✅ Proposta enviada! O consultor foi notificado.', 'success');
+
+  } catch(e) {
+    notify('Erro ao enviar proposta: ' + (e.message || 'tente novamente'), 'error');
+    document.getElementById('btn-enviar').disabled = false;
+    console.error('Erro ao enviar:', e);
+  } finally {
+    document.getElementById('sending-overlay').classList.remove('active');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   UI HELPERS
+══════════════════════════════════════════════ */
+function showError(title, msg) {
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-main').style.display    = 'none';
+  document.getElementById('state-error').style.display  = 'flex';
+  document.getElementById('err-title').textContent = title;
+  document.getElementById('err-msg').textContent   = msg;
+}
+
+function notify(msg, type = 'info') {
+  const d = document.createElement('div');
+  d.className = 'notif ' + type;
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => {
+    d.style.transition = '.3s';
+    d.style.opacity = '0';
+    d.style.transform = 'translateY(10px)';
+    setTimeout(() => d.remove(), 300);
+  }, 4000);
+}
+
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>
