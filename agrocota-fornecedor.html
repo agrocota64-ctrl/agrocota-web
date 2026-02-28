@@ -518,13 +518,18 @@ let localInfos   = {};
    HELPERS HTTP
 ══════════════════════════════════════════════ */
 async function sbFetch(path, opts = {}) {
+  // Para INSERT (POST) usa return=minimal — evita SELECT após insert
+  // que causa erro 42501 quando anon não tem policy de SELECT
+  const isInsert = (opts.method || 'GET').toUpperCase() === 'POST';
+  const prefer   = isInsert ? 'return=minimal' : 'return=representation';
+
   const res = await fetch(SUPABASE_URL + path, {
     ...opts,
     headers: {
       'apikey':        SUPABASE_ANON,
       'Authorization': 'Bearer ' + SUPABASE_ANON,
       'Content-Type':  'application/json',
-      'Prefer':        'return=representation',
+      'Prefer':        prefer,
       ...(opts.headers || {})
     }
   });
