@@ -563,14 +563,38 @@ async function sbFetch(path, opts = {}) {
 })();
 
 /* ══════════════════════════════════════════════
-   CARREGAR COTAÇÃO (pelo approval_token)
+   CARREGAR COTAÇÃO
+   Fluxo:
+   1º) Resolve token via fornecedor_tokens (link exclusivo por revenda)
+   2º) Fallback: approval_token direto em cotacoes (links legados)
 ══════════════════════════════════════════════ */
 async function loadCotacao() {
-  // 1. Busca cotação pelo approval_token
-  const rows = await sbFetch(
-    '/rest/v1/cotacoes?approval_token=eq.' + encodeURIComponent(token) +
-    '&select=id,titulo,consultor_id,fazenda_id,area_ha,data_validade,observacoes,excel_itens_json,status&limit=1'
-  );
+
+  // 1. Tenta resolver pelo token em fornecedor_tokens
+  let tokenRow = null;
+  try {
+    const ftRows = await sbFetch(
+      '/rest/v1/fornecedor_tokens?token=eq.' + encodeURIComponent(token) +
+      '&select=id,cotacao_id,empresa_nome,usado&limit=1'
+    );
+    if (ftRows && ftRows.length > 0) tokenRow = ftRows[0];
+  } catch(_) {}
+
+  // 2. Busca a cotação pelo caminho correto
+  let rows = null;
+  if (tokenRow) {
+    // Caminho novo: token exclusivo por revenda
+    rows = await sbFetch(
+      '/rest/v1/cotacoes?id=eq.' + encodeURIComponent(tokenRow.cotacao_id) +
+      '&select=id,titulo,consultor_id,fazenda_id,area_ha,data_validade,observacoes,excel_itens_json,status&limit=1'
+    );
+  } else {
+    // Caminho legado: approval_token direto na cotação
+    rows = await sbFetch(
+      '/rest/v1/cotacoes?approval_token=eq.' + encodeURIComponent(token) +
+      '&select=id,titulo,consultor_id,fazenda_id,area_ha,data_validade,observacoes,excel_itens_json,status&limit=1'
+    );
+  }
 
   if (!rows || rows.length === 0) {
     showError('Cotação não encontrada', 'Este link de cotação não existe ou foi revogado. Solicite um novo ao consultor.');
@@ -580,13 +604,19 @@ async function loadCotacao() {
   cotacao   = rows[0];
   cotacaoId = cotacao.id;
 
-  // 2. Verifica se cotação está ativa (não cancelada)
+  // 3. Verifica se cotação está ativa
   if (cotacao.status === 'cancelada') {
     showError('Cotação cancelada', 'Esta cotação foi cancelada pelo consultor.');
     return;
   }
 
-  // 3. Carrega itens da cotação
+  // 4. Pré-preenche nome da empresa se o token já tem empresa_nome registrado
+  if (tokenRow && tokenRow.empresa_nome) {
+    const empresaInput = document.getElementById('forn-empresa');
+    if (empresaInput && !empresaInput.value) empresaInput.value = tokenRow.empresa_nome;
+  }
+
+  // 5. Carrega itens da cotação
   let itens = [];
   try {
     const itensRows = await sbFetch(
@@ -595,33 +625,33 @@ async function loadCotacao() {
     );
     itens = itensRows || [];
   } catch(e) {
-    // fallback: tenta carregar do excel_itens_json
     if (cotacao.excel_itens_json) {
       try { itens = JSON.parse(cotacao.excel_itens_json) || []; } catch(_) {}
     }
   }
 
-  // 4. Monta products a partir dos itens
+  // 6. Monta products
   products = itens.map(it => ({
-    id:       it.id,
-    nome:     it.produto_nome || '—',
-    cat:      it.categoria || 'Geral',
-    subcat:   '',
-    ia:       it.principio_ativo || '—',   // ← campo correto
-    fonte:    it.fonte || '—',             // ← campo correto
-    alvo:     '—',
-    estadio:  it.estagio || '—',
-    dose:     it.dose_ha != null ? String(it.dose_ha) : (it.quantidade != null ? String(it.quantidade) : '—'),
-    unid:     it.unidade || 'L/ha',
-    aplic:    it.n_aplicacoes || '—',
+    id:         it.id,
+    nome:       it.produto_nome || '—',
+    cat:        it.categoria || 'Geral',
+    subcat:     '',
+    ia:         it.principio_ativo || '—',
+    fonte:      it.fonte || '—',
+    alvo:       '—',
+    estadio:    it.estagio || '—',
+    dose:       it.dose_ha != null ? String(it.dose_ha) : (it.quantidade != null ? String(it.quantidade) : '—'),
+    unid:       it.unidade || 'L/ha',
+    aplic:      it.n_aplicacoes || '—',
     tecnologia: null,
-    extras:   [],
-    valor_ha: 0
+    extras:     [],
+    valor_ha:   0
   }));
 
-  // 5. Verifica se já existe proposta desta sessão (por empresa no localStorage)
+  // 7. Banner "já enviou" — usa o TOKEN como chave (não cotacaoId)
+  // Cada empresa tem seu próprio token: empresa A nunca vê aviso da empresa B
   try {
-    const savedEmpresa = localStorage.getItem('ac_forn_empresa_' + cotacaoId);
+    const savedEmpresa = localStorage.getItem('ac_forn_token_' + token);
     if (savedEmpresa) {
       document.getElementById('already-sent-banner').style.display = 'flex';
       document.getElementById('already-empresa').textContent = savedEmpresa;
@@ -872,8 +902,9 @@ async function submitCotacao() {
       });
     }
 
-    // 3. Salva no localStorage para identificar envio anterior
-    try { localStorage.setItem('ac_forn_empresa_' + cotacaoId, empresa); } catch(e) {}
+    // 3. Salva no localStorage usando o TOKEN como chave
+    // Assim cada empresa com seu link exclusivo tem estado independente
+    try { localStorage.setItem('ac_forn_token_' + token, empresa); } catch(e) {}
 
     // 4. Sucesso: desabilita tudo
     document.querySelectorAll('.input-price').forEach(inp => inp.disabled = true);
