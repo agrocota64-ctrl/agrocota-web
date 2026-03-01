@@ -591,7 +591,7 @@ async function loadCotacao() {
   try {
     const itensRows = await sbFetch(
       '/rest/v1/itens_cotacao?cotacao_id=eq.' + cotacaoId +
-      '&select=id,produto_nome,fornecedor,unidade,quantidade,preco_referencia,categoria,estagio,n_aplicacoes,dose_ha,volume_total,obs&order=categoria.asc,produto_nome.asc'
+      '&select=id,produto_nome,fornecedor,unidade,quantidade,preco_referencia,categoria,estagio,n_aplicacoes,dose_ha,volume_total,obs,principio_ativo,fonte&order=categoria.asc,produto_nome.asc'
     );
     itens = itensRows || [];
   } catch(e) {
@@ -607,8 +607,8 @@ async function loadCotacao() {
     nome:     it.produto_nome || '—',
     cat:      it.categoria || 'Geral',
     subcat:   '',
-    ia:       it.obs || '—',
-    fonte:    it.fornecedor || '—',
+    ia:       it.principio_ativo || '—',   // ← campo correto
+    fonte:    it.fonte || '—',             // ← campo correto
     alvo:     '—',
     estadio:  it.estagio || '—',
     dose:     it.dose_ha != null ? String(it.dose_ha) : (it.quantidade != null ? String(it.quantidade) : '—'),
