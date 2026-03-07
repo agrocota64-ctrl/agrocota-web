@@ -98,6 +98,87 @@ body {
 /* ── MAIN ── */
 .main { max-width: 1440px; margin: 0 auto; padding: 24px 20px 60px; }
 
+/* ── DISPONIBILIDADE & ALTERNATIVA ── */
+.avail-toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px; padding: 5px 11px;
+  border-radius: 20px; border: 1.5px solid var(--gray-300);
+  background: var(--gray-50); color: var(--gray-600);
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: all .18s; white-space: nowrap;
+}
+.avail-toggle-btn:hover { border-color: var(--red-600); color: var(--red-600); background: var(--red-100); }
+.avail-toggle-btn.indisponivel { border-color: var(--red-600); background: var(--red-100); color: var(--red-600); }
+.avail-toggle-btn.indisponivel:hover { border-color: var(--green-700); color: var(--green-700); background: var(--green-100); }
+
+.row-indisponivel td:not(.td-alt-actions) { opacity: .55; }
+.row-indisponivel .prod-name { text-decoration: line-through; }
+.indisponivel-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: .4px;
+  background: var(--red-100); color: var(--red-600);
+  border: 1px solid #ffcdd2; margin-top: 4px;
+}
+
+/* Linha de formulário de alternativa */
+.alt-form-row td { background: #fffbf0; padding: 0 !important; }
+.alt-form-row.hidden { display: none; }
+.alt-form-inner {
+  border-top: 2px dashed #fbbf24;
+  padding: 16px 20px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.alt-form-title {
+  font-size: 11px; font-weight: 800; color: #92400e;
+  text-transform: uppercase; letter-spacing: .6px;
+  display: flex; align-items: center; gap: 6px; margin-bottom: 2px;
+}
+.alt-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.5fr 1fr;
+  gap: 10px;
+}
+@media(max-width:900px){ .alt-fields { grid-template-columns: 1fr 1fr; } }
+.alt-field-group label {
+  display: block; font-size: 10px; font-weight: 700;
+  color: #92400e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px;
+}
+.alt-input {
+  width: 100%; height: 34px; padding: 0 10px;
+  border: 1.5px solid #fde68a; border-radius: 6px;
+  font-size: 13px; font-family: 'Inter', sans-serif;
+  background: #fffdf0; color: var(--gray-900);
+  transition: border-color .15s;
+}
+.alt-input:focus { outline: none; border-color: #f59e0b; background: #fff; }
+.alt-dose-row { display: flex; gap: 6px; }
+.alt-dose-row .alt-input { flex: 1; }
+.alt-dose-row .alt-select {
+  height: 34px; padding: 0 8px;
+  border: 1.5px solid #fde68a; border-radius: 6px;
+  font-size: 12px; font-family: 'Inter', sans-serif;
+  background: #fffdf0; color: var(--gray-700);
+}
+
+/* Comparação visual (linha da alternativa aceita) */
+.alt-compare-row td { background: #f0fdf4; padding: 10px 16px; }
+.alt-compare-row.hidden { display: none; }
+.alt-compare-inner { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.alt-compare-badge {
+  font-size: 10px; font-weight: 800; color: var(--green-700);
+  background: var(--green-100); border: 1px solid #a7f3d0;
+  padding: 2px 8px; border-radius: 20px; letter-spacing: .4px;
+}
+.compare-item { font-size: 12px; color: var(--gray-700); }
+.compare-item strong { color: var(--gray-900); }
+.compare-diff {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 20px; margin-left: 4px;
+}
+.compare-diff.maior { background: #fef3c7; color: #92400e; }
+.compare-diff.menor { background: var(--green-100); color: var(--green-700); }
+.compare-diff.igual { background: var(--gray-100); color: var(--gray-500); }
+
 /* ── INSTRUCAO ── */
 .instrucao {
   background: var(--blue-50); border: 1.5px solid #90caf9;
@@ -529,12 +610,14 @@ const SUPABASE_ANON = 'sb_publishable_3HDU_nViFfOubXqNplV5ow_8FV0Ix0r';
 /* ══════════════════════════════════════════════
    ESTADO
 ══════════════════════════════════════════════ */
-let cotacao      = null;
-let cotacaoId    = null;
-let token        = null;
-let products     = [];
-let localPrices  = {};
-let localInfos   = {};
+let cotacao           = null;
+let cotacaoId         = null;
+let token             = null;
+let products          = [];
+let localPrices       = {};
+let localInfos        = {};
+let localAvailability = {};  // { id: true|false }  — false = "não tenho"
+let localAlternatives = {};  // { id: { nome, ia, dose, unidade, valor_ha, info } }
 
 /* ══════════════════════════════════════════════
    HELPERS HTTP
@@ -715,6 +798,8 @@ function renderTable() {
     grupos[cat][sub].push(p);
   });
 
+  const UNIDADES_ALT = ['L/ha','kg/ha','g/ha','mL/ha','kg/100kg','L/100kg','sc/ha','doses/ha','t/ha'];
+
   let rows = '';
   for (const cat in grupos) {
     const subcats   = grupos[cat];
@@ -728,11 +813,18 @@ function renderTable() {
       list.forEach(p => {
         const savedVal  = localPrices[p.id] !== undefined ? localPrices[p.id] : '';
         const savedInfo = localInfos[p.id]  || '';
+        const isUnavail = localAvailability[p.id] === false;
+        const alt       = localAlternatives[p.id] || {};
         const tecnologiaHtml = p.tecnologia
           ? `<span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;background:var(--purple-100);color:var(--purple-600);margin-top:3px">${p.tecnologia}</span>` : '';
 
+        const unidOptions = UNIDADES_ALT.map(u =>
+          `<option value="${u}"${(alt.unidade||'L/ha')===u?' selected':''}>${u}</option>`
+        ).join('');
+
+        // ── Linha original (produto do consultor) ──
         rows += `
-          <tr id="row-${p.id}">
+          <tr id="row-${p.id}" class="${isUnavail ? 'row-indisponivel' : ''}">
             <td>
               <div class="prod-name">${escHtml(p.nome)}</div>
               <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">
@@ -740,6 +832,13 @@ function renderTable() {
                 ${sub ? `<span class="prod-subcat-badge">${escHtml(sub)}</span>` : ''}
                 ${tecnologiaHtml}
               </div>
+              <span id="indisponivel-badge-${p.id}" class="indisponivel-badge" style="display:${isUnavail?'inline-block':'none'}">INDISPONÍVEL</span>
+              <br>
+              <button
+                id="avail-btn-${p.id}"
+                class="avail-toggle-btn${isUnavail?' indisponivel':''}"
+                onclick="toggleAvailability('${p.id}')"
+              >${isUnavail ? '↩ Tenho este produto' : '✕ Não tenho este produto'}</button>
             </td>
             <td style="font-size:12px;max-width:150px">${escHtml(p.ia || '—')}</td>
             <td style="font-size:12px;max-width:130px">${escHtml(p.fonte || '—')}</td>
@@ -771,12 +870,83 @@ function renderTable() {
                   placeholder="0,00"
                   value="${savedVal !== '' ? savedVal : ''}"
                   min="0" step="0.01"
+                  ${isUnavail ? 'disabled' : ''}
                   oninput="onPriceInput('${p.id}', this.value)"
                 >
                 <button class="btn-clear-price" onclick="clearPrice('${p.id}')" title="Limpar">×</button>
               </div>
             </td>
           </tr>`;
+
+        // ── Linha de formulário da alternativa ──
+        rows += `
+          <tr id="alt-row-${p.id}" class="alt-form-row${isUnavail ? '' : ' hidden'}">
+            <td colspan="9">
+              <div class="alt-form-inner">
+                <div class="alt-form-title">
+                  🔄 Propor produto alternativo
+                  <span style="font-weight:400;font-size:10px;color:#b45309;text-transform:none;letter-spacing:0">
+                    — O produto original permanece visível para comparação pelo consultor
+                  </span>
+                </div>
+                <div class="alt-fields">
+                  <div class="alt-field-group">
+                    <label>Nome do Produto Alternativo *</label>
+                    <input class="alt-input" type="text"
+                      placeholder="Ex: Roundup Transorb HC"
+                      value="${escHtml(alt.nome||'')}"
+                      oninput="onAltInput('${p.id}','nome',this.value)">
+                  </div>
+                  <div class="alt-field-group">
+                    <label>Princípio Ativo / i.a.</label>
+                    <input class="alt-input" type="text"
+                      placeholder="Ex: Glifosato 480 g/L"
+                      value="${escHtml(alt.ia||'')}"
+                      oninput="onAltInput('${p.id}','ia',this.value)">
+                  </div>
+                  <div class="alt-field-group">
+                    <label>Dose + Unidade</label>
+                    <div class="alt-dose-row">
+                      <input class="alt-input" type="number" min="0" step="0.01"
+                        placeholder="Ex: 3"
+                        value="${escHtml(String(alt.dose||''))}"
+                        oninput="onAltInput('${p.id}','dose',this.value)">
+                      <select class="alt-select" onchange="onAltInput('${p.id}','unidade',this.value)">
+                        ${unidOptions}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="alt-field-group">
+                    <label>Valor por ha (R$/ha) *</label>
+                    <input class="alt-input" type="number" min="0" step="0.01"
+                      placeholder="Ex: 38,50"
+                      value="${alt.valor_ha||''}"
+                      oninput="onAltInput('${p.id}','valor_ha',this.value)">
+                  </div>
+                  <div class="alt-field-group">
+                    <label>Obs / Prazo de entrega</label>
+                    <input class="alt-input" type="text"
+                      placeholder="Ex: Disponível em 2 dias"
+                      value="${escHtml(alt.info||'')}"
+                      oninput="onAltInput('${p.id}','info',this.value)">
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>`;
+
+        // ── Linha de comparação (aparece ao digitar alternativa) ──
+        rows += `
+          <tr id="cmp-row-${p.id}" class="alt-compare-row${(isUnavail && alt.nome) ? '' : ' hidden'}">
+            <td colspan="9">
+              <div class="alt-compare-inner"></div>
+            </td>
+          </tr>`;
+
+        // Restaurar comparação se já havia alternativa
+        if (isUnavail && alt.nome) {
+          setTimeout(() => updateCompare(p.id), 0);
+        }
       });
     }
   }
@@ -807,14 +977,113 @@ function onInfoInput(id, val) {
   localInfos[id] = val;
 }
 
+/* ══════════════════════════════════════════════
+   DISPONIBILIDADE E ALTERNATIVA
+══════════════════════════════════════════════ */
+function toggleAvailability(id) {
+  const isNowUnavailable = localAvailability[id] !== false;
+  localAvailability[id] = isNowUnavailable ? false : true;
+
+  const btn     = document.getElementById('avail-btn-' + id);
+  const origRow = document.getElementById('row-' + id);
+  const altRow  = document.getElementById('alt-row-' + id);
+  const badge   = document.getElementById('indisponivel-badge-' + id);
+  const priceInp = document.getElementById('price-' + id);
+
+  if (localAvailability[id] === false) {
+    // Marcou como indisponível
+    btn.textContent = '↩ Tenho este produto';
+    btn.classList.add('indisponivel');
+    origRow.classList.add('row-indisponivel');
+    badge.style.display = 'inline-block';
+    if (altRow) altRow.classList.remove('hidden');
+    if (priceInp) { priceInp.disabled = true; priceInp.value = ''; localPrices[id] = 0; }
+  } else {
+    // Reverteu para disponível
+    btn.textContent = '✕ Não tenho este produto';
+    btn.classList.remove('indisponivel');
+    origRow.classList.remove('row-indisponivel');
+    badge.style.display = 'none';
+    if (altRow) altRow.classList.add('hidden');
+    if (priceInp) priceInp.disabled = false;
+    delete localAlternatives[id];
+    const cmpRow = document.getElementById('cmp-row-' + id);
+    if (cmpRow) cmpRow.classList.add('hidden');
+  }
+
+  calcTotal();
+  updateProgress();
+}
+
+function onAltInput(id, field, val) {
+  if (!localAlternatives[id]) localAlternatives[id] = { nome:'', ia:'', dose:'', unidade:'L/ha', valor_ha:0, info:'' };
+  localAlternatives[id][field] = field === 'valor_ha' ? (parseFloat(val) || 0) : val;
+
+  // Atualiza comparação em tempo real
+  updateCompare(id);
+  calcTotal();
+  updateProgress();
+}
+
+function updateCompare(id) {
+  const alt = localAlternatives[id];
+  const p   = products.find(x => x.id === id);
+  const cmpRow = document.getElementById('cmp-row-' + id);
+  if (!cmpRow || !alt || !p) return;
+
+  const temNome = alt.nome && alt.nome.trim();
+  if (!temNome) { cmpRow.classList.add('hidden'); return; }
+
+  const origDose = parseFloat(p.dose) || 0;
+  const altDose  = parseFloat(alt.dose) || 0;
+  const origVal  = parseFloat(localPrices[id]) || 0;
+  const altVal   = alt.valor_ha || 0;
+
+  function diffBadge(orig, alt, unit) {
+    if (!orig || !alt) return '';
+    const pct = Math.round(((alt - orig) / orig) * 100);
+    if (pct === 0) return `<span class="compare-diff igual">= igual</span>`;
+    const cls = pct > 0 ? 'maior' : 'menor';
+    const sign = pct > 0 ? '+' : '';
+    return `<span class="compare-diff ${cls}">${sign}${pct}% ${unit}</span>`;
+  }
+
+  const doseDiff  = diffBadge(origDose, altDose, 'dose');
+  const valorDiff = diffBadge(origVal, altVal, 'preço');
+
+  cmpRow.querySelector('.alt-compare-inner').innerHTML = `
+    <span class="alt-compare-badge">ALTERNATIVA PROPOSTA</span>
+    <span class="compare-item">
+      <strong>${escHtml(alt.nome)}</strong>
+      ${alt.ia ? `<em style="color:var(--gray-500);font-size:11px"> · ${escHtml(alt.ia)}</em>` : ''}
+    </span>
+    <span class="compare-item">Dose: <strong>${escHtml(alt.dose || '—')} ${escHtml(alt.unidade || '')}</strong>
+      ${doseDiff} <span style="color:var(--gray-400);font-size:11px">vs ${p.dose} ${p.unid} (original)</span>
+    </span>
+    ${altVal ? `<span class="compare-item">Valor: <strong>R$ ${altVal.toFixed(2).replace('.',',')}/ha</strong>${valorDiff}</span>` : ''}
+  `;
+  cmpRow.classList.remove('hidden');
+}
+
 function calcTotal() {
-  const total = Object.values(localPrices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  let total = 0;
+  products.forEach(p => {
+    if (localAvailability[p.id] === false) {
+      // Usa o preço da alternativa se existir
+      total += (localAlternatives[p.id]?.valor_ha || 0);
+    } else {
+      total += parseFloat(localPrices[p.id] || 0);
+    }
+  });
   document.getElementById('total-val').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
 }
 
 function updateProgress() {
-  const filled = products.filter(p => (localPrices[p.id] || 0) > 0).length;
-  const pct = products.length ? Math.round((filled / products.length) * 100) : 0;
+  const addressed = products.filter(p => {
+    if (localAvailability[p.id] === false) return true;          // marcou indisponível = respondeu
+    return (parseFloat(localPrices[p.id] || 0)) > 0;            // tem preço
+  }).length;
+  const pct = products.length ? Math.round((addressed / products.length) * 100) : 0;
   document.getElementById('progress-pct').textContent = pct + '%';
   document.getElementById('progress-bar').style.width = pct + '%';
 }
@@ -831,9 +1100,12 @@ async function submitCotacao() {
     return;
   }
 
-  const filled = products.filter(p => (localPrices[p.id] || 0) > 0).length;
-  if (filled === 0) {
-    notify('Preencha ao menos um valor por ha antes de enviar', 'error');
+  // Considera preenchido: tem preço OU marcou como indisponível
+  const addressed = products.filter(p =>
+    localAvailability[p.id] === false || (parseFloat(localPrices[p.id] || 0)) > 0
+  ).length;
+  if (addressed === 0) {
+    notify('Preencha ao menos um preço ou marque produtos indisponíveis antes de enviar', 'error');
     return;
   }
 
@@ -842,16 +1114,34 @@ async function submitCotacao() {
   const validade = document.getElementById('forn-validade').value || null;
   const obs      = document.getElementById('forn-obs').value.trim();
 
-  const itensJson = products.map(p => ({
-    id:        p.id,
-    produto:   p.nome,
-    cat:       p.cat,
-    dose:      `${p.dose} ${p.unid}`,
-    valor_ha:  parseFloat(localPrices[p.id] || 0),
-    info:      localInfos[p.id] || ''
-  }));
+  const itensJson = products.map(p => {
+    const disponivel = localAvailability[p.id] !== false;
+    const alt        = localAlternatives[p.id] || null;
+    return {
+      id:         p.id,
+      produto:    p.nome,
+      cat:        p.cat,
+      dose_orig:  `${p.dose} ${p.unid}`,
+      ia_orig:    p.ia || '',
+      disponivel: disponivel,
+      valor_ha:   disponivel ? parseFloat(localPrices[p.id] || 0) : 0,
+      info:       localInfos[p.id] || '',
+      // Alternativa proposta pela revenda (só quando indisponível)
+      alternativa: (!disponivel && alt && alt.nome) ? {
+        nome:     alt.nome,
+        ia:       alt.ia || '',
+        dose:     alt.dose || '',
+        unidade:  alt.unidade || 'L/ha',
+        valor_ha: alt.valor_ha || 0,
+        info:     alt.info || ''
+      } : null
+    };
+  });
 
-  const totalProposta = itensJson.reduce((s, it) => s + it.valor_ha, 0);
+  const totalProposta = itensJson.reduce((s, it) => {
+    if (!it.disponivel && it.alternativa) return s + (it.alternativa.valor_ha || 0);
+    return s + it.valor_ha;
+  }, 0);
 
   document.getElementById('sending-overlay').classList.add('active');
   document.getElementById('btn-enviar').disabled = true;
@@ -876,12 +1166,18 @@ async function submitCotacao() {
       body: JSON.stringify(proposta)
     });
 
+    const cotados      = itensJson.filter(it => it.disponivel && it.valor_ha > 0).length;
+    const indisponiveis = itensJson.filter(it => !it.disponivel).length;
+    const comAlt        = itensJson.filter(it => !it.disponivel && it.alternativa).length;
+
     if (cotacao && cotacao.consultor_id) {
+      let msgParts = [`${cotados} produto${cotados!==1?'s':''} cotado${cotados!==1?'s':''}`];
+      if (indisponiveis > 0) msgParts.push(`${indisponiveis} indisponível${indisponiveis!==1?'is':''} (${comAlt} com alternativa)`);
       const notif = {
         consultor_id:       cotacao.consultor_id,
         tipo:               'proposta_fornecedor',
         titulo:             '📥 Nova proposta de ' + empresa,
-        mensagem:           empresa + ' enviou uma proposta para "' + (cotacao.titulo || 'sem título') + '". ' + filled + ' produto' + (filled !== 1 ? 's' : '') + ' cotado' + (filled !== 1 ? 's' : '') + ' · Total: R$ ' + totalProposta.toFixed(2).replace('.', ','),
+        mensagem:           empresa + ' enviou uma proposta para "' + (cotacao.titulo || 'sem título') + '". ' + msgParts.join(' · ') + ' · Total: R$ ' + totalProposta.toFixed(2).replace('.', ','),
         empresa_fornecedor: empresa,
         cotacao_id:         cotacaoId,
         token_cotacao:      token,
@@ -901,14 +1197,19 @@ async function submitCotacao() {
     document.querySelectorAll('.input-price').forEach(inp => inp.disabled = true);
     document.querySelectorAll('.btn-clear-price').forEach(btn => btn.style.display = 'none');
     document.querySelectorAll('.info-textarea').forEach(ta => { ta.disabled = true; ta.style.opacity = '.6'; });
+    document.querySelectorAll('.alt-input').forEach(inp => { inp.disabled = true; inp.style.opacity = '.6'; });
+    document.querySelectorAll('.alt-select').forEach(sel => { sel.disabled = true; sel.style.opacity = '.6'; });
+    document.querySelectorAll('.avail-toggle-btn').forEach(btn => btn.disabled = true);
     document.querySelectorAll('.form-input').forEach(inp => inp.disabled = true);
     document.getElementById('forn-validade').disabled = true;
     document.getElementById('forn-obs').disabled = true;
     document.getElementById('btn-row').style.display = 'none';
 
     const banner = document.getElementById('success-banner');
+    let successParts = [`${cotados} produto${cotados!==1?'s':''} cotado${cotados!==1?'s':''}`];
+    if (indisponiveis > 0) successParts.push(`${comAlt} alternativa${comAlt!==1?'s':''} proposta${comAlt!==1?'s':''}`);
     document.getElementById('success-msg').textContent =
-      empresa + ' — ' + filled + ' de ' + products.length + ' produtos cotados · Total: R$ ' + totalProposta.toFixed(2).replace('.', ',');
+      empresa + ' — ' + successParts.join(' · ') + ' · Total: R$ ' + totalProposta.toFixed(2).replace('.', ',');
     banner.style.display = 'block';
     banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
