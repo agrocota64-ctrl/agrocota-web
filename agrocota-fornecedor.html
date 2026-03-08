@@ -1034,23 +1034,7 @@ function updateCompare(id) {
   const temNome = alt.nome && alt.nome.trim();
   if (!temNome) { cmpRow.classList.add('hidden'); return; }
 
-  const origDose = parseFloat(p.dose) || 0;
-  const altDose  = parseFloat(alt.dose) || 0;
-  const origVal  = parseFloat(localPrices[id]) || 0;
-  const altVal   = alt.valor_ha || 0;
-
-  function diffBadge(orig, alt, unit) {
-    if (!orig || !alt) return '';
-    const pct = Math.round(((alt - orig) / orig) * 100);
-    if (pct === 0) return `<span class="compare-diff igual">= igual</span>`;
-    const cls = pct > 0 ? 'maior' : 'menor';
-    const sign = pct > 0 ? '+' : '';
-    return `<span class="compare-diff ${cls}">${sign}${pct}% ${unit}</span>`;
-  }
-
-  const doseDiff  = diffBadge(origDose, altDose, 'dose');
-  const valorDiff = diffBadge(origVal, altVal, 'preço');
-
+  /* % de dose/preço: aparece SOMENTE para o consultor no app. Fornecedor vê só dose vs original. */
   cmpRow.querySelector('.alt-compare-inner').innerHTML = `
     <span class="alt-compare-badge">ALTERNATIVA PROPOSTA</span>
     <span class="compare-item">
@@ -1058,9 +1042,9 @@ function updateCompare(id) {
       ${alt.ia ? `<em style="color:var(--gray-500);font-size:11px"> · ${escHtml(alt.ia)}</em>` : ''}
     </span>
     <span class="compare-item">Dose: <strong>${escHtml(alt.dose || '—')} ${escHtml(alt.unidade || '')}</strong>
-      ${doseDiff} <span style="color:var(--gray-400);font-size:11px">vs ${p.dose} ${p.unid} (original)</span>
+      <span style="color:var(--gray-400);font-size:11px">vs ${p.dose} ${p.unid} (original)</span>
     </span>
-    ${altVal ? `<span class="compare-item">Valor: <strong>R$ ${altVal.toFixed(2).replace('.',',')}/ha</strong>${valorDiff}</span>` : ''}
+    ${alt.valor_ha ? `<span class="compare-item">Valor: <strong>R$ ${alt.valor_ha.toFixed(2).replace('.',',')}/ha</strong></span>` : ''}
   `;
   cmpRow.classList.remove('hidden');
 }
