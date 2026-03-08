@@ -724,7 +724,7 @@ async function loadCotacao() {
 
   products = itens.map(it => ({
     id:         it.id,
-    nome:       it.produto_nome || '—',
+    nome:       it.produto_nome || it.nome || '—',
     cat:        it.categoria || 'Geral',
     subcat:     '',
     ia:         it.principio_ativo || '—',
@@ -1110,14 +1110,14 @@ async function submitCotacao() {
       disponivel: disponivel,
       valor_ha:   disponivel ? parseFloat(localPrices[p.id] || 0) : 0,
       info:       localInfos[p.id] || '',
-      // Alternativa proposta pela revenda (só quando indisponível)
-      alternativa: (!disponivel && alt && alt.nome) ? {
-        nome:     alt.nome,
-        ia:       alt.ia || '',
-        dose:     alt.dose || '',
-        unidade:  alt.unidade || 'L/ha',
-        valor_ha: alt.valor_ha || 0,
-        info:     alt.info || ''
+      // Alternativa proposta pela revenda (só quando indisponível e tem dados)
+      alternativa: (!disponivel && alt && (String(alt.nome || '').trim() || alt.dose || alt.valor_ha)) ? {
+        nome:     String(alt.nome || '').trim() || 'Produto alternativo',
+        ia:       String(alt.ia || '').trim() || '',
+        dose:     String(alt.dose || '').trim() || '',
+        unidade:  String(alt.unidade || 'L/ha').trim() || 'L/ha',
+        valor_ha: parseFloat(alt.valor_ha) || 0,
+        info:     String(alt.info || '').trim() || ''
       } : null
     };
   });
